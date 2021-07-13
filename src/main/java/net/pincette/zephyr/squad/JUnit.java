@@ -9,11 +9,13 @@ import static net.pincette.util.Util.tryToGetRethrow;
 import static net.pincette.xml.Util.children;
 import static net.pincette.xml.Util.secureDocumentBuilderFactory;
 import static net.pincette.zephyr.squad.Execution.FAILED;
+import static net.pincette.zephyr.squad.Execution.NOT_EXECUTED;
 import static net.pincette.zephyr.squad.Execution.SUCCESS;
 
 import java.io.File;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -38,6 +40,12 @@ public class JUnit {
   private static final String TIME = "time";
 
   private JUnit() {}
+
+  private static Execution execution(final Element testcase) {
+    final Supplier<Execution> trySkipped = () -> isSkipped(testcase) ? NOT_EXECUTED : SUCCESS;
+
+    return isError(testcase) ? FAILED : trySkipped.get();
+  }
 
   private static Optional<Element> findElement(final Node node, final String name) {
     return children(node)
@@ -93,30 +101,17 @@ public class JUnit {
     return findElement(testcase, SKIPPED).isPresent();
   }
 
-  private static Optional<Stream<Testcase>> loadResults(final File results) {
-    return tryToGetRethrow(
-            () ->
-                secureDocumentBuilderFactory()
-                    .newDocumentBuilder()
-                    .parse(results)
-                    .getDocumentElement())
-        .map(net.pincette.xml.Util::children)
+  private static Stream<Testcase> loadResults(final File results) {
+    return testcases(readResults(results))
+        .map(e -> pair(testcaseKey(e.getAttribute(NAME)).orElse(null), e))
+        .filter(pair -> pair.first != null)
         .map(
-            nodes ->
-                nodes
-                    .filter(Element.class::isInstance)
-                    .map(Element.class::cast)
-                    .filter(n -> TESTCASE.equals(n.getNodeName()))
-                    .filter(n -> !isSkipped(n))
-                    .map(e -> pair(testcaseKey(e.getAttribute(NAME)).orElse(null), e))
-                    .filter(pair -> pair.first != null)
-                    .map(
-                        pair ->
-                            new Testcase()
-                                .withKey(pair.first)
-                                .withExecution(isError(pair.second) ? FAILED : SUCCESS)
-                                .withMessage(getMessage(pair.second).orElse(null))
-                                .withExecutionTime(getExecutionTime(pair.second).orElse(null))));
+            pair ->
+                new Testcase()
+                    .withKey(pair.first)
+                    .withExecution(execution(pair.second))
+                    .withMessage(getMessage(pair.second).orElse(null))
+                    .withExecutionTime(getExecutionTime(pair.second).orElse(null)));
   }
 
   /**
@@ -126,12 +121,30 @@ public class JUnit {
    * @return The testcase stream.
    */
   public static Stream<Testcase> loadTestcases(final File[] results) {
-    return stream(results).flatMap(r -> loadResults(r).orElseGet(Stream::empty));
+    return stream(results).flatMap(JUnit::loadResults);
+  }
+
+  private static Stream<Node> readResults(final File results) {
+    return tryToGetRethrow(
+            () ->
+                secureDocumentBuilderFactory()
+                    .newDocumentBuilder()
+                    .parse(results)
+                    .getDocumentElement())
+        .map(net.pincette.xml.Util::children)
+        .orElseGet(Stream::empty);
   }
 
   private static Optional<String> testcaseKey(final String name) {
     return Optional.of(KEY.matcher(name))
         .filter(Matcher::matches)
         .map(matcher -> matcher.group(1).replace('_', '-'));
+  }
+
+  private static Stream<Element> testcases(final Stream<Node> nodes) {
+    return nodes
+        .filter(Element.class::isInstance)
+        .map(Element.class::cast)
+        .filter(n -> TESTCASE.equals(n.getNodeName()));
   }
 }

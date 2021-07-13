@@ -25,9 +25,9 @@ import static net.pincette.util.Collections.list;
 import static net.pincette.util.Collections.map;
 import static net.pincette.util.Collections.set;
 import static net.pincette.util.Pair.pair;
-import static net.pincette.util.Util.must;
 import static net.pincette.util.Util.tryToGetRethrow;
 import static net.pincette.zephyr.squad.Execution.FAILED;
+import static net.pincette.zephyr.squad.Execution.IN_PROGRESS;
 import static net.pincette.zephyr.squad.Execution.NOT_EXECUTED;
 import static net.pincette.zephyr.squad.Execution.SUCCESS;
 import static net.pincette.zephyr.squad.Http.getJson;
@@ -77,9 +77,14 @@ class JiraConnection {
   private static final String UNRELEASED_VERSIONS = "unreleasedVersions";
   private static final String VALUE = "value";
   private static final String VERSION_ID = "versionId";
+  private static final String WIP = "WIP";
   private static final Map<String, Execution> EXECUTION_MAP =
-      map(pair(FAIL, FAILED), pair(PASS, SUCCESS), pair(UNEXECUTED, NOT_EXECUTED));
-  private static final Set<String> KNOWN_EXECUTIONS = set(FAIL, PASS, UNEXECUTED);
+      map(
+          pair(FAIL, FAILED),
+          pair(PASS, SUCCESS),
+          pair(UNEXECUTED, NOT_EXECUTED),
+          pair(WIP, IN_PROGRESS));
+  private static final Set<String> KNOWN_EXECUTIONS = set(FAIL, PASS, UNEXECUTED, WIP);
 
   private final Map<String, List<String>> authorization;
   private final String jiraEndpoint;

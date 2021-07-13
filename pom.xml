@@ -6,7 +6,7 @@
 
   <groupId>net.pincette</groupId>
   <artifactId>pincette-zephyr-squad</artifactId>
-  <version>1.0</version>
+  <version>1.0.1</version>
   <packaging>jar</packaging>
   <name>pincette-zephyr-squad</name>
   <description>API for Zephyr Squad</description>

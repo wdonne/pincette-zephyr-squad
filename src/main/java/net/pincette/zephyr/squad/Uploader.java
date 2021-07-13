@@ -5,7 +5,7 @@ import static java.util.stream.Collectors.toSet;
 import static net.pincette.util.Collections.difference;
 import static net.pincette.util.Pair.pair;
 import static net.pincette.util.StreamUtil.composeAsyncSuppliers;
-import static net.pincette.zephyr.squad.Execution.NOT_EXECUTED;
+import static net.pincette.zephyr.squad.Execution.IN_PROGRESS;
 
 import java.util.Optional;
 import java.util.Set;
@@ -96,7 +96,7 @@ public class Uploader {
                 keys.map(
                         key ->
                             difference(key, executed).stream()
-                                .map(k -> new Testcase().withKey(k).withExecution(NOT_EXECUTED)))
+                                .map(k -> new Testcase().withKey(k).withExecution(IN_PROGRESS)))
                     .map(
                         testcases ->
                             sendTestExecutions(cycle, testcases, connection)
